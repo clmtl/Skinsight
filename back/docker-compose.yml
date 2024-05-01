@@ -1,0 +1,32 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: skinsight
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  nest-app:
+    build:
+      dockerfile: Dockerfile
+      context: .
+      target: development
+    # Run in Debug Mode: npm run start:debug --> Don't forget to start your vscode debugger!
+    # Run in dev Mode: npm run start:dev  
+    command: npm run start:dev
+    depends_on:
+      - postgres
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/skinsight
+    volumes: 
+      - .:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:

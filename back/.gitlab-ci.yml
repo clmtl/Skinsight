@@ -1,0 +1,41 @@
+default:
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  before_script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $DOCKER_REGISTRY
+
+stages:
+  - deploy
+
+variables:
+  DOCKER_REGISTRY: "registry.gitlab.com"
+  IMAGE_NAME: "back-skincare"
+  IMAGE_VERSION: "latest"
+  DOCKER_IMAGE_NAME: $DOCKER_REGISTRY/$CI_PROJECT_PATH/$IMAGE_NAME:$IMAGE_VERSION
+
+deploy:
+  stage: deploy
+  script:
+    - |
+      if [[ "$CI_COMMIT_REF_NAME" == *"release"* ]]; then
+        echo "Building Docker image..."
+        docker build \
+          --build-arg DATABASE_HOST=$DATABASE_HOST \
+          --build-arg DATABASE_NAME=$DATABASE_NAME \
+          --build-arg DATABASE_PASSWORD=$DATABASE_PASSWORD \
+          --build-arg DATABASE_PORT=$DATABASE_PORT \
+          --build-arg DATABASE_URL=$DATABASE_URL \
+          --build-arg DATABASE_USER=$DATABASE_USER \
+          --build-arg JWT_ACCESS_TOKEN_EXPIRATION_TIME=$JWT_ACCESS_TOKEN_EXPIRATION_TIME \
+          --build-arg JWT_ACCESS_TOKEN_SECRET=$JWT_ACCESS_TOKEN_SECRET \
+          --build-arg JWT_REFRESH_TOKEN_EXPIRATION_TIME=$JWT_REFRESH_TOKEN_EXPIRATION_TIME \
+          --build-arg JWT_REFRESH_TOKEN_SECRET=$JWT_REFRESH_TOKEN_SECRET \
+          -t $DOCKER_IMAGE_NAME -f Dockerfile .
+        echo "Pushing Docker image to GitLab Container Registry..."
+        docker push $DOCKER_IMAGE_NAME
+      else
+        echo "Not a release branch. Skipping Docker image push."
+      fi
+  only:
+    - branches

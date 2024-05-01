@@ -1,0 +1,75 @@
+# CI/CD Dockerfile for GitLab CI/CD pipeline
+
+# Development stage
+FROM node:18 AS development
+
+# Set node env to dev
+ARG NODE_ENV=development
+ENV NODE_ENV=${NODE_ENV}
+
+# Specify our working directory, this is in our container/in our image
+WORKDIR /app
+
+# Copy the package.jsons from host to container
+# A wildcard is used to ensure both package.json AND package-lock.json are copied
+COPY package*.json ./
+
+# Here we install all the dependencies
+RUN npm install
+
+# Copy the rest of the application files
+COPY . .
+
+# Build the app to the /dist folder
+RUN npm run build
+
+################
+## PRODUCTION ##
+################
+
+# Production stage
+FROM node:18 AS production
+
+# Set node env to prod
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
+
+# Set other environment variables using build arguments
+ARG POSTGRES_URL
+ARG API_KEY
+ARG ANOTHER_VARIABLE
+ARG DATABASE_HOST
+ARG DATABASE_NAME
+ARG DATABASE_PASSWORD
+ARG DATABASE_PORT
+ARG DATABASE_URL
+ARG DATABASE_USER
+ARG JWT_ACCESS_TOKEN_EXPIRATION_TIME
+ARG JWT_ACCESS_TOKEN_SECRET
+ARG JWT_REFRESH_TOKEN_EXPIRATION_TIME
+ARG JWT_REFRESH_TOKEN_SECRET
+
+ENV POSTGRES_URL=${POSTGRES_URL}
+ENV API_KEY=${API_KEY}
+ENV ANOTHER_VARIABLE=${ANOTHER_VARIABLE}
+ENV DATABASE_HOST=${DATABASE_HOST}
+ENV DATABASE_NAME=${DATABASE_NAME}
+ENV DATABASE_PASSWORD=${DATABASE_PASSWORD}
+ENV DATABASE_PORT=${DATABASE_PORT}
+ENV DATABASE_URL=${DATABASE_URL}
+ENV DATABASE_USER=${DATABASE_USER}
+ENV JWT_ACCESS_TOKEN_EXPIRATION_TIME=${JWT_ACCESS_TOKEN_EXPIRATION_TIME}
+ENV JWT_ACCESS_TOKEN_SECRET=${JWT_ACCESS_TOKEN_SECRET}
+ENV JWT_REFRESH_TOKEN_EXPIRATION_TIME=${JWT_REFRESH_TOKEN_EXPIRATION_TIME}
+ENV JWT_REFRESH_TOKEN_SECRET=${JWT_REFRESH_TOKEN_SECRET}
+
+# Set Working Directory
+WORKDIR /app
+
+# Copy the built application from the development stage
+COPY --from=development /app/ .
+
+EXPOSE 8080
+
+# Run the application
+CMD [ "node", "dist/main" ]
